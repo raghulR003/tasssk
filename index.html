@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Task Manager</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="task-display">
+            <!-- Display tasks here -->
+            <div class="task-card">
+                <h2>Task Name</h2>
+                <p>Description of the task</p>
+                <p>Due Date: <span class="due-date">2023-10-20</span></p>
+                <p>Days Left: <span class="days-left">5</span></p>
+                <button class="complete-button">Completed</button>
+            </div>
+        </div>
+
+        <div class="add-task">
+            <center>
+                <h2>Add a New Task</h2>
+            </center>
+            <form id="task-form">
+                <div class="form-group">
+                    <label for="task-name">Task Name:</label>
+                    <input type="text" id="task-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="task-description">Description:</label>
+                    <textarea id="task-description" style="width: 319px; height: 271px;" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="due-date">Due Date:</label>
+                    <input type="date" id="due-date" required>
+                </div>
+                <center>
+                    <button type="submit">Add Task</button>
+                </center>
+            </form>
+        </div>
+    </div>
+    <script>
+        const taskForm = document.getElementById('task-form');
+const taskDisplay = document.querySelector('.task-display');
+const taskNameInput = document.getElementById('task-name');
+const taskDescriptionInput = document.getElementById('task-description');
+const dueDateInput = document.getElementById('due-date');
+
+// Add a new task to the JSON database
+taskForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const newTask = {
+        name: taskNameInput.value,
+        description: taskDescriptionInput.value,
+        dueDate: dueDateInput.value
+    };
+
+    // Use fetch to send a POST request to JSON-Server
+    fetch('http://localhost:3000/tasks', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newTask),
+    })
+    .then(response => response.json())
+    .then(data => {
+        // You can update the UI here if needed
+        taskNameInput.value = '';
+        taskDescriptionInput.value = '';
+        dueDateInput.value = '';
+        displayTasks();
+    });
+});
+// Load and display tasks from the JSON database
+function displayTasks() {
+    fetch('http://localhost:3000/tasks')
+    .then(response => response.json())
+    .then(data => {
+        // You can update the UI to display tasks here
+        if (data.length > 0) {
+            // Display the task with the closest due date
+            const closestTask = data[0];
+            const today = new Date();
+            const dueDate = new Date(closestTask.dueDate);
+            const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+
+            taskDisplay.innerHTML = `
+                <div class="task">
+                    <h2>${closestTask.name}</h2>
+                    <p>${closestTask.description}</p>
+                    <p>Due Date: <span class="due-date">${closestTask.dueDate}</span></p>
+                    <p>Days Left: <span class="days-left">${daysLeft}</span></p>
+                    <button class="complete-button" data-task-id="${closestTask.id}">Completed</button>
+                </div>
+            `;
+        } else {
+            taskDisplay.innerHTML = '<p>No tasks available</p>';
+        }
+    });
+}
+
+// Complete a task (delete it from the JSON database)
+taskDisplay.addEventListener('click', (e) => {
+    if (e.target.classList.contains('complete-button')) {
+        const taskId = e.target.getAttribute('data-task-id');
+
+        // Use fetch to send a DELETE request to JSON-Server
+        fetch(`http://localhost:3000/tasks/${taskId}`, {
+            method: 'DELETE',
+        })
+        .then(response => response.json())
+        .then(data => {
+            // After deleting the task, re-display the tasks
+            displayTasks();
+        });
+    }
+});
+
+// Initial task display
+displayTasks();
+
+    </script>
+</body>
+</html>
